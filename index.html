@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>KARIKA — Playlist Path Fixer</title>
+<style>
+:root{color-scheme:dark;--bg:#10131b;--panel:#191e29;--line:#303747;--text:#eff3fb;--muted:#aeb9cc;--accent:#abef65}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:16px 'Segoe UI',Tahoma,sans-serif;line-height:1.7}main{max-width:1000px;margin:auto;padding:36px 24px}header{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-bottom:28px}.brand{font-size:14px;font-weight:800;letter-spacing:3px;color:var(--accent)}.badge{color:var(--muted);font-size:13px;border:1px solid var(--line);padding:5px 12px;border-radius:25px}h1{font-size:32px;margin:6px 0;font-weight:750}p{margin:4px 0;color:var(--muted)}.panel{padding:24px;background:var(--panel);border:1px solid var(--line);border-radius:18px;margin-top:18px}.field{margin-bottom:18px}label{display:block;margin-bottom:7px;font-weight:600}input[type=text]{width:100%;padding:13px 15px;border:1px solid #46516a;border-radius:10px;background:#111722;color:white;font:15px Consolas,monospace;direction:ltr;text-align:left}input:focus,button:focus-visible{outline:2px solid var(--accent);outline-offset:3px}.hint{font-size:13px;color:var(--muted);margin-top:6px}.drop{border:2px dashed #46516a;border-radius:14px;padding:27px;text-align:center;background:#141a24;cursor:pointer}.drop.over{border-color:var(--accent);background:#203021}.drop strong{font-size:19px;display:block}.actions{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:16px}button{font:600 15px 'Segoe UI',Tahoma,sans-serif;border:1px solid #46516a;border-radius:10px;background:#262e3e;color:white;padding:11px 19px;cursor:pointer}button.primary{background:var(--accent);color:#142007;border:0}button:disabled{opacity:.4;cursor:default}.counter{color:var(--muted);font-size:14px;margin-inline-start:auto}.notice{padding:12px 16px;border-radius:10px;background:#213421;color:#c9f3b0;margin-top:16px}.notice.error{background:#3e2529;color:#ffbfc7}.file{border-bottom:1px solid var(--line);padding:15px 0}.file:last-child{border:0}.filehead{display:flex;align-items:center;gap:12px}.filename{font-family:Consolas,monospace;overflow-wrap:anywhere;direction:ltr;text-align:left;margin-inline-end:auto}.mini{padding:4px 10px;font-size:12px}.state{font-size:13px;color:var(--muted)}.state.good{color:var(--accent)}.state.bad{color:#ffb1b8}.preview{font:12px/1.7 Consolas,monospace;direction:ltr;text-align:left;overflow-wrap:anywhere;padding:9px 12px;background:#111722;border-radius:8px;margin-top:10px}.after{color:var(--accent);margin-top:5px}.caption{color:#9caac0;font:11px 'Segoe UI',sans-serif}.hidden{display:none}footer{margin:24px 0;color:var(--muted);font-size:13px;text-align:center}h2{font-size:18px;margin:0 0 14px}@media(max-width:600px){main{padding:20px 14px}h1{font-size:26px}.panel{padding:17px}header{align-items:start}.badge{max-width:120px;text-align:center}.filehead{flex-wrap:wrap}.counter{margin-inline-start:0}}
+</style></head>
+<body><main>
+<header><div><div class="brand" dir="ltr">KARIKA / DJ TOOLS</div><h1>غيّر المسار. خلّي الترتيب.</h1><p>تعديل مسارات ملفات Rekordbox كلها دفعة واحدة.</p></div><span class="badge">يعمل على جهازك<br>بدون إنترنت</span></header>
+<section class="panel"><div class="field"><label for="old">المسار القديم</label><input id="old" type="text" value="E:\Contents\" spellcheck="false" autocomplete="off"></div>
+<div><label for="new">المسار الجديد</label><input id="new" type="text" value="D:\dj flashat\Pioneer Flasha Small\USB Drive\Contents" spellcheck="false" autocomplete="off"><div class="hint">اكتب المسار لحد Contents؛ باقي المجلدات واسم كل أغنية هيفضلوا زي ما هم.</div></div></section>
+<section class="panel"><div id="drop" class="drop" role="button" tabindex="0" aria-label="اختيار ملفات البلاي ليست"><strong>اسحب ملفات البلاي ليست هنا</strong><p>أو اضغط لاختيار مجموعة ملفات M3U / M3U8</p><div class="hint">تقدر تختار ملفات كتير باستخدام Ctrl أو Shift.</div></div><input id="picker" class="hidden" type="file" accept=".m3u,.m3u8" multiple>
+<div class="actions"><button id="add">إضافة ملفات</button><button id="clear" disabled>مسح القائمة</button><span id="count" class="counter">لم يتم اختيار ملفات</span></div></section>
+<section id="results" class="panel hidden"><h2>الملفات ومعاينة التعديل</h2><div id="files"></div></section>
+<div class="actions"><button id="download" class="primary" disabled>تنزيل الملفات المعدّلة ZIP</button><span class="hint">نسخ جديدة بنفس أسماء الملفات. ملفاتك الأصلية محفوظة.</span></div><div id="notice" class="notice hidden" role="status" aria-live="polite"></div>
+<footer>البرنامج بيغيّر نص المسارات فقط. لازم تكون ناقل فولدر Contents بنفس ترتيب المجلدات للمكان الجديد.<br>فك ضغط ملف ZIP قبل استيراد البلاي ليست في برنامج الـ DJ.</footer>
+</main>
+<script>
+'use strict';
+const encoder = new TextEncoder();
+function normalizeRoot(value) {
+  let s = value.trim();
+  if(s.startsWith('"') && s.endsWith('"')) s=s.slice(1,-1);
+  s=s.replace(/\//g,'\\').replace(/\\+$/,'');
+  if(!/^[A-Za-z]:\\/.test(s) && !/^\\\\[^\\]+\\[^\\]+/.test(s)) throw new Error('اكتب مسار كامل، زي E:\\Contents أو D:\\Music\\Contents.');
+  if(/[\x00-\x1f*?"<>|]/.test(s)||s.slice(2).includes(':')) throw new Error('المسار فيه حروف غير مسموح بيها.');
+  return s+'\\';
+}
+function joinBytes(parts) { const size=parts.reduce((n,p)=>n+p.length,0);const out=new Uint8Array(size);let pos=0;for(const p of parts){out.set(p,pos);pos+=p.length;}return out; }
+function lowerByte(b){return b>=65&&b<=90?b+32:b;}
+function prefixMatch(bytes,start,needle){if(start+needle.length>bytes.length)return false;for(let j=0;j<needle.length;j++){let a=bytes[start+j],b=needle[j];if(a===47)a=92;if(b===47)b=92;if(lowerByte(a)!==lowerByte(b))return false;}return true;}
+function rewriteBytes(bytes,oldInput,newInput) {
+  const oldRoot=normalizeRoot(oldInput),newRoot=normalizeRoot(newInput);
+  if(oldRoot.toLowerCase()===newRoot.toLowerCase()) throw new Error('المسار الجديد هو نفس المسار القديم.');
+  if(bytes.length>=4&&((bytes[0]===255&&bytes[1]===254&&bytes[2]===0&&bytes[3]===0)||(bytes[0]===0&&bytes[1]===0&&bytes[2]===254&&bytes[3]===255)))throw new Error('ترميز UTF-32 غير مدعوم. احفظ الملف بترميز UTF-8 الأول.');
+  const utf16=bytes.length>=2&&((bytes[0]===255&&bytes[1]===254)||(bytes[0]===254&&bytes[1]===255));
+  if(utf16){
+    const big=bytes[0]===254;const source=new TextDecoder(big?'utf-16be':'utf-16le',{fatal:true}).decode(bytes.subarray(2));
+    const replaced=rewriteBytes(encoder.encode(source),oldInput,newInput);const str=new TextDecoder('utf-8',{fatal:true}).decode(replaced.bytes);const out=new Uint8Array(2+str.length*2);out.set(bytes.subarray(0,2));
+    for(let i=0;i<str.length;i++){const code=str.charCodeAt(i);out[2+i*2]=big?code>>>8:code&255;out[3+i*2]=big?code&255:code>>>8;}return {...replaced,bytes:out};
+  }
+  let validUtf8=true;try{new TextDecoder('utf-8',{fatal:true}).decode(bytes);}catch{validUtf8=false;}
+  if(!validUtf8&&/[^\x00-\x7f]/.test(oldRoot+newRoot))throw new Error('الملف بترميز قديم. لاستخدام مسار جديد فيه عربي، احفظ البلاي ليست بصيغة M3U8 / UTF-8 الأول.');
+  if(bytes.includes(0))throw new Error('الملف مش بلاي ليست نصية مدعومة. استخدم M3U أو M3U8 بترميز UTF-8.');
+  const needle=encoder.encode(oldRoot),replacement=encoder.encode(newRoot),parts=[];let count=0,tracks=0,firstBefore='',firstAfter='',last=0;
+  const offset=bytes[0]===239&&bytes[1]===187&&bytes[2]===191?3:0;
+  const decodePreview=b=>new TextDecoder(validUtf8?'utf-8':'windows-1256').decode(b);
+  for(let start=offset;start<bytes.length;){let end=start;while(end<bytes.length&&bytes[end]!==10&&bytes[end]!==13)end++;
+    if(end>start&&bytes[start]!==35){tracks++;if(end-start>=needle.length&&prefixMatch(bytes,start,needle)){
+      parts.push(bytes.subarray(last,start),replacement);last=start+needle.length;count++;
+      if(!firstBefore){firstBefore=decodePreview(bytes.subarray(start,end));firstAfter=newRoot+decodePreview(bytes.subarray(start+needle.length,end));}
+    }}
+    start=end;if(start<bytes.length&&bytes[start]===13)start++;if(start<bytes.length&&bytes[start]===10)start++;
+  }
+  parts.push(bytes.subarray(last));return {bytes:joinBytes(parts),count,tracks,firstBefore,firstAfter};
+}
+const crcTable=Array.from({length:256},(_,i)=>{for(let n=0;n<8;n++)i=i&1?0xedb88320^(i>>>1):i>>>1;return i>>>0;});
+function crc32(bytes){let c=0xffffffff;for(const b of bytes)c=crcTable[(c^b)&255]^(c>>>8);return (c^0xffffffff)>>>0;}
+function makeZip(entries){
+  const local=[],central=[];let offset=0;const now=new Date(),time=(now.getHours()<<11)|(now.getMinutes()<<5)|(now.getSeconds()>>1),date=((now.getFullYear()-1980)<<9)|((now.getMonth()+1)<<5)|now.getDate();
+  for(const entry of entries){const name=encoder.encode(entry.name),data=entry.bytes,crc=crc32(data),header=new Uint8Array(30+name.length),v=new DataView(header.buffer);v.setUint32(0,0x04034b50,true);v.setUint16(4,20,true);v.setUint16(6,0x800,true);v.setUint16(10,time,true);v.setUint16(12,date,true);v.setUint32(14,crc,true);v.setUint32(18,data.length,true);v.setUint32(22,data.length,true);v.setUint16(26,name.length,true);header.set(name,30);local.push(header,data);
+    const ch=new Uint8Array(46+name.length),cv=new DataView(ch.buffer);cv.setUint32(0,0x02014b50,true);cv.setUint16(4,20,true);cv.setUint16(6,20,true);cv.setUint16(8,0x800,true);cv.setUint16(12,time,true);cv.setUint16(14,date,true);cv.setUint32(16,crc,true);cv.setUint32(20,data.length,true);cv.setUint32(24,data.length,true);cv.setUint16(28,name.length,true);cv.setUint32(42,offset,true);ch.set(name,46);central.push(ch);offset+=header.length+data.length;
+  }
+  const centralSize=central.reduce((n,b)=>n+b.length,0);if(entries.length>65535||offset+centralSize>0xffffffff)throw new Error('حجم الدفعة كبير؛ قسم الملفات على دفعات أصغر.');const end=new Uint8Array(22),ev=new DataView(end.buffer);ev.setUint32(0,0x06054b50,true);ev.setUint16(8,entries.length,true);ev.setUint16(10,entries.length,true);ev.setUint32(12,centralSize,true);ev.setUint32(16,offset,true);return new Blob([...local,...central,end],{type:'application/zip'});
+}
+const $=id=>document.getElementById(id);let items=[],busy=false;
+function message(text,error=false){$('notice').textContent=text;$('notice').className='notice'+(error?' error':'');}
+function saveBlob(blob,name){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);}
+function refresh(){
+  $('files').replaceChildren();$('results').classList.toggle('hidden',!items.length);$('clear').disabled=!items.length||busy;$('count').textContent=items.length?items.length+' ملف في القائمة':'لم يتم اختيار ملفات';let successful=0;
+  for(const item of items){item.result=null;let error=item.readError;try{if(!error)item.result=rewriteBytes(item.bytes,$('old').value,$('new').value);}catch(e){error=e.message;}
+    const row=document.createElement('div');row.className='file';const head=document.createElement('div');head.className='filehead';const name=document.createElement('span');name.className='filename';name.textContent=item.name;const state=document.createElement('span');state.className='state';
+    if(error){state.textContent=error;state.classList.add('bad');}else if(!item.result.count){state.textContent='مفيش مسارات مطابقة — مش هيتصدّر';}else{successful++;state.textContent=item.result.count+' مسار هيتغيّر'+(item.result.tracks>item.result.count?' / '+(item.result.tracks-item.result.count)+' بدون تغيير':'');state.classList.add('good');}
+    const remove=document.createElement('button');remove.className='mini';remove.textContent='إزالة';remove.disabled=busy;remove.onclick=()=>{items=items.filter(x=>x!==item);refresh();};head.append(name,state,remove);row.append(head);
+    if(item.result&&item.result.count){const preview=document.createElement('div');preview.className='preview';const before=document.createElement('div'),after=document.createElement('div');before.textContent=item.result.firstBefore;after.textContent=item.result.firstAfter;after.className='after';preview.append(before,after);row.append(preview);} $('files').append(row);
+  }
+  $('download').disabled=!successful||busy;$('add').disabled=busy;
+}
+async function addFiles(files){if(busy)return;busy=true;refresh();let skipped=0;try{for(const file of files){if(!/\.m3u8?$/i.test(file.name)){skipped++;continue;}if(items.some(x=>x.name===file.name&&x.size===file.size&&x.modified===file.lastModified))continue;const item={name:file.name,size:file.size,modified:file.lastModified};try{item.bytes=new Uint8Array(await file.arrayBuffer());}catch{item.readError='تعذر قراءة الملف؛ اختاره من جديد.';}items.push(item);}}finally{busy=false;refresh();}message(skipped?'تمت إضافة البلاي ليست. تم تجاهل '+skipped+' ملف بصيغة مختلفة.':'راجع المعاينة، وبعدها اضغط تنزيل الملفات المعدّلة ZIP.');}
+$('add').onclick=()=>$('picker').click();$('drop').onclick=()=>$('picker').click();$('drop').onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();$('picker').click();}};
+$('picker').onchange=async e=>{await addFiles(Array.from(e.target.files));e.target.value='';};
+for(const type of ['dragenter','dragover'])$('drop').addEventListener(type,e=>{e.preventDefault();$('drop').classList.add('over');});
+$('drop').addEventListener('dragleave',()=>$('drop').classList.remove('over'));$('drop').addEventListener('drop',e=>{e.preventDefault();$('drop').classList.remove('over');addFiles(Array.from(e.dataTransfer.files));});
+window.addEventListener('dragover',e=>e.preventDefault());window.addEventListener('drop',e=>e.preventDefault());
+$('clear').onclick=()=>{items=[];refresh();$('notice').className='notice hidden';};for(const id of ['old','new'])$(id).addEventListener('input',()=>{refresh();$('notice').className='notice hidden';});
+$('download').onclick=()=>{try{refresh();const selected=items.filter(x=>x.result&&x.result.count);if(!selected.length)return;const names=new Set();let renamed=0;const entries=selected.map(item=>{let name=item.name,n=2;while(names.has(name.toLowerCase())){name=item.name.replace(/(\.m3u8?)$/i,' ('+(n++)+')$1');}if(name!==item.name)renamed++;names.add(name.toLowerCase());return {name,bytes:item.result.bytes};});saveBlob(makeZip(entries),'Karika_Fixed_Playlists.zip');const skipped=items.length-selected.length;message('تم تجهيز '+selected.length+' ملف وطلب تنزيل ZIP — '+selected.reduce((n,x)=>n+x.result.count,0)+' مسار اتعدّل.'+(skipped?' تم استبعاد '+skipped+' ملف؛ راجع حالتهم في القائمة.':'')+(renamed?' الملفات المتشابهة في الاسم اتضاف لها رقم للحفاظ عليها.':''));}catch(e){message('تعذر التجهيز: '+e.message,true);}};
+</script></body></html>
